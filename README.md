@@ -42,4 +42,6 @@ The model name is set in `run_ollama_chat` in `ollama_chat.py` (`model='llama3.1
 
 ## Issues
 
-Found a bug? Open an [issue](https://github.com/plaui228/ollama_chat/issues).
+Found a bug? Open an [issue](https://github.com/n1ji/ollama_chat/issues).
+
+Made by n1ji (plaui).
