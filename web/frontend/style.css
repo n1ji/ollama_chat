@@ -22,6 +22,11 @@
   --shadow: rgb(20 30 60 / 0.16);
   --bubble-bot: rgb(255 255 255 / 0.62);
   --bubble-err: rgb(255 214 214 / 0.8);
+  --code-bg: rgb(24 28 40 / 0.9);
+  --code-head: rgb(255 255 255 / 0.08);
+  --code-text: #e8ebf3;
+  --link: #0a64d8;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
 
   --r-window: 24px;                      /* toolbar, composer, bubbles */
   --r-control: 16px;                     /* concentric with the window radius */
@@ -45,6 +50,8 @@
     --shadow: rgb(0 0 0 / 0.45);
     --bubble-bot: rgb(60 66 80 / 0.55);
     --bubble-err: rgb(110 40 44 / 0.7);
+    --code-bg: rgb(10 12 20 / 0.72);
+    --link: #6db3ff;
     --wall-a: #1b2a52; --wall-b: #3a2150; --wall-c: #12392f; --wall-d: #3b2f1c;
   }
 }
@@ -229,6 +236,46 @@ body {
 .composer textarea:focus-visible { outline: 0; }
 .composer:has(textarea:focus-visible) { box-shadow:
     0 0 0 2px var(--accent), inset 0 1px 0 var(--highlight), 0 12px 32px var(--shadow); }
+
+/* ---------- markdown inside assistant bubbles ---------- */
+.msg .body.md { white-space: normal; }
+.md > :first-child { margin-top: 0; }
+.md > :last-child { margin-bottom: 0; }
+.md p, .md ul, .md ol, .md blockquote, .md .codeblock, .md .table-wrap { margin: 0.55em 0; }
+.md h1, .md h2, .md h3, .md h4, .md h5, .md h6 { margin: 0.9em 0 0.35em; line-height: 1.25; font-weight: 650; }
+.md h1 { font-size: 1.35em; } .md h2 { font-size: 1.22em; } .md h3 { font-size: 1.1em; }
+.md h4, .md h5, .md h6 { font-size: 1em; }
+.md ul, .md ol { padding-left: 1.5em; }
+.md li { margin: 0.15em 0; }
+.md li.task { list-style: none; margin-left: -1.2em; }
+.md li > ul, .md li > ol { margin: 0.2em 0; }
+.md a { color: var(--link); text-underline-offset: 2px; }
+.md hr { border: 0; height: 1px; background: var(--muted); opacity: 0.35; margin: 0.9em 0; }
+.md blockquote { padding: 0.1em 0 0.1em 12px; border-left: 3px solid var(--accent); color: var(--muted); }
+.md :not(pre) > code {
+  font: 0.88em var(--mono); padding: 0.12em 0.4em; border-radius: 7px;
+  background: rgb(128 128 128 / 0.2);
+}
+.codeblock {
+  border-radius: var(--r-control); overflow: hidden; background: var(--code-bg);
+  box-shadow: 0 0 0 0.5px var(--rim), inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+.codehead {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 5px 8px 5px 14px; background: var(--code-head);
+  font-size: 12px; color: rgb(232 235 243 / 0.7);
+}
+.codehead .copy {
+  font: inherit; color: inherit; background: transparent; cursor: pointer;
+  border: 0; border-radius: 8px; padding: 3px 9px;
+}
+.codehead .copy:hover { background: rgb(255 255 255 / 0.14); color: #fff; }
+.codeblock pre { margin: 0; padding: 10px 14px 12px; overflow-x: auto; color: var(--code-text); }
+.codeblock pre code { font: 13px/1.5 var(--mono); white-space: pre; }
+.table-wrap { overflow-x: auto; }
+.md table { border-collapse: collapse; font-size: 0.95em; }
+.md th, .md td { padding: 5px 12px; border-bottom: 1px solid rgb(128 128 128 / 0.3); text-align: left; }
+.md th { font-weight: 650; border-bottom-width: 2px; }
 
 @keyframes msg-in { from { opacity: 0; transform: translateY(6px) scale(0.985); } }
 @keyframes pop-in { from { opacity: 0; transform: translateY(-4px) scale(0.98); } }

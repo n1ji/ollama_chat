@@ -40,6 +40,9 @@ function validMessages(list) {
 }
 
 // ---------- rendering ----------
+function drawMarkdown(body, text) {
+  body.replaceChildren(window.renderMarkdown ? window.renderMarkdown(text) : document.createTextNode(text));
+}
 function makeBubble(role, text) {
   const div = document.createElement("div");
   div.className = "msg " + (role === "user" ? "user" : role === "assistant" ? "assistant" : "error");
@@ -48,7 +51,12 @@ function makeBubble(role, text) {
   who.textContent = role === "user" ? "User" : role === "assistant" ? "Ollama" : role[0].toUpperCase() + role.slice(1);
   const body = document.createElement("div");
   body.className = "body";
-  body.textContent = text;  // textContent: model output is never interpreted as HTML
+  if (role === "assistant") {
+    body.classList.add("md");
+    drawMarkdown(body, text);   // built from DOM nodes, never innerHTML
+  } else {
+    body.textContent = text;    // your own messages stay plain text
+  }
   div.append(who, body);
   els.messages.append(div);
   return div;
@@ -152,6 +160,7 @@ async function ask(prompt) {
   scrollToBottom(true);
 
   let reply = "";
+  let frame = 0;   // streaming repaints are batched to one per animation frame
   let failure = null;
   let stopped = false;
   controller = new AbortController();
@@ -185,9 +194,14 @@ async function ask(prompt) {
         if (event.content) {
           reply += event.content;
           bubble.classList.remove("thinking");
-          const stick = nearBottom();
-          body.textContent = reply;
-          if (stick) scrollToBottom(true);
+          if (!frame) {
+            frame = requestAnimationFrame(() => {
+              frame = 0;
+              const stick = nearBottom();
+              drawMarkdown(body, reply);
+              if (stick) scrollToBottom(true);
+            });
+          }
         }
       }
     }
@@ -199,6 +213,8 @@ async function ask(prompt) {
     failure = new Error("The model sent back an empty reply. Try Redo, or pick another model.");
   }
 
+  if (frame) cancelAnimationFrame(frame);
+  if (reply) drawMarkdown(body, reply);   // final paint with the complete text
   controller = null;
   setBusy(false);
   setStatus("");

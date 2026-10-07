@@ -53,7 +53,7 @@ The `web/` folder has a browser version of the same chat, split into a backend a
 python web/server.py
 ```
 
-It opens http://localhost:8765 in your browser. Same features as the desktop app (model picker, streaming, Redo, save/load chat, and saved chats use the same JSON), plus a Stop button. The look is a Liquid Glass style that follows light/dark mode, and the half-circle button in the toolbar has a Clear to Tinted slider for the glass.
+It opens http://localhost:8765 in your browser. Same features as the desktop app (model picker, streaming, Redo, save/load chat, and saved chats use the same JSON), plus a Stop button and Markdown in the answers (headings, bold/italic, lists, tables, quotes, links and code blocks with a Copy button). Your own messages stay plain text, and the saved chat keeps the original Markdown. The look is a Liquid Glass style that follows light/dark mode, and the half-circle button in the toolbar has a Clear to Tinted slider for the glass.
 
 Because the two sides only talk through three endpoints (written down in [`web/API.md`](web/API.md)), either one can be swapped:
 
