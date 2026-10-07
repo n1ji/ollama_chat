@@ -44,17 +44,25 @@ On first launch no model is selected. Open **File → Choose Model**, pick one o
 
 ## Web UI (experimental)
 
-The `web/` folder has a browser version of the same chat: a small Python backend (`server.py`, standard library plus the `ollama` package) and a single-page frontend (`index.html`).
+The `web/` folder has a browser version of the same chat, split into a backend and a frontend:
+
+- `web/server.py` is the backend (Python standard library plus the `ollama` package)
+- `web/frontend/` is the frontend (plain HTML, CSS and JS, no build step)
 
 ```bash
 python web/server.py
 ```
 
-It opens http://localhost:8765 in your browser. Same features as the desktop app (model picker, streaming, Redo, save/load chat, and saved chats use the same JSON), plus a Stop button. The chat itself lives in the browser, so the server keeps nothing between requests.
+It opens http://localhost:8765 in your browser. Same features as the desktop app (model picker, streaming, Redo, save/load chat, and saved chats use the same JSON), plus a Stop button. The look is a Liquid Glass style that follows light/dark mode, and the half-circle button in the toolbar has a Clear to Tinted slider for the glass.
 
-- `--port 9000` changes the port and `--no-browser` stops it from opening a tab
-- It only listens on your own computer. `--host 0.0.0.0` makes it reachable from other devices, but there is no login, so anyone on your network could use your Ollama
-- This is early and can be buggy
+Because the two sides only talk through three endpoints (written down in [`web/API.md`](web/API.md)), either one can be swapped:
+
+- another frontend: `python web/server.py --frontend path/to/folder` (any folder with an `index.html`)
+- another backend: serve the frontend files and implement the endpoints in `web/API.md`
+
+Other options: `--port 9000` changes the port and `--no-browser` stops it from opening a tab.
+
+It only listens on your own computer. `--host 0.0.0.0` makes it reachable from other devices, but there is no login, so anyone on your network could use your Ollama. This is early and can be buggy.
 
 ## Issues
 

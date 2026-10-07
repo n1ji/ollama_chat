@@ -7,15 +7,18 @@ request, so saved chats are the same JSON the desktop app uses.
 """
 import argparse
 import json
+import mimetypes
+import sys
 import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from ollama import chat, list as list_models
 
 HERE = Path(__file__).parent
+FRONTEND_DIR = HERE / "frontend"  # any folder with an index.html works, see --frontend
 MODEL_FILE = Path.home() / "Documents" / "selected_model.txt"  # shared with the desktop app
 MAX_CONTEXT_MESSAGES = 40
 MAX_BODY_BYTES = 20 * 1024 * 1024
@@ -115,23 +118,38 @@ class Handler(BaseHTTPRequestHandler):
         if not self.request_allowed():
             return self.send_json(403, {"error": "Forbidden"})
         path = urlparse(self.path).path
-        if path in ("/", "/index.html"):
-            body = (HERE / "index.html").read_bytes()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(body)
-        elif path == "/api/models":
+        if path == "/api/models":
             try:
                 models = installed_models()
                 error = None
             except Exception as e:
                 models, error = [], f"Couldn't reach Ollama: {e}"
             self.send_json(200, {"models": models, "selected": load_saved_model(), "error": error})
-        else:
+        elif path.startswith("/api/"):
             self.send_json(404, {"error": "Not found"})
+        else:
+            self.serve_static(path)
+
+    def serve_static(self, path):
+        """Serve the frontend folder. Anything outside it is a 404."""
+        rel = "index.html" if path == "/" else unquote(path).lstrip("/")
+        root = FRONTEND_DIR.resolve()
+        try:
+            target = (root / rel).resolve()
+        except (ValueError, OSError):
+            return self.send_json(404, {"error": "Not found"})
+        if root not in target.parents or not target.is_file():
+            return self.send_json(404, {"error": "Not found"})
+        content_type = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+        if content_type.startswith("text/") or content_type in ("application/javascript", "application/json"):
+            content_type += "; charset=utf-8"
+        body = target.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self):
         if not self.request_allowed():
@@ -200,13 +218,19 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    global restrict_to_local
+    global restrict_to_local, FRONTEND_DIR
     parser = argparse.ArgumentParser(description="Web UI for Ollama")
     parser.add_argument("--host", default="127.0.0.1",
                         help="address to listen on (default: 127.0.0.1, this computer only)")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--frontend", type=Path, default=FRONTEND_DIR,
+                        help="folder with the frontend to serve (default: web/frontend)")
     parser.add_argument("--no-browser", action="store_true", help="don't open the browser automatically")
     args = parser.parse_args()
+
+    FRONTEND_DIR = args.frontend
+    if not (FRONTEND_DIR / "index.html").is_file():
+        sys.exit(f"No index.html in {FRONTEND_DIR}")
 
     if args.host not in ("127.0.0.1", "localhost", "::1"):
         restrict_to_local = False

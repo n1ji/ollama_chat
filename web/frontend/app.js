@@ -1,87 +1,11 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>O.C.GUI web</title>
-<style>
-  :root {
-    --bg: #f4f5f7; --panel: #ffffff; --text: #1b1d21; --muted: #6b7280; --border: #d9dce1;
-    --user: #cfe6fb; --bot: #d4f0d4; --error: #f6c9c9; --accent: #2f7de1; --accent-text: #fff;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #15171a; --panel: #1f2226; --text: #e8eaed; --muted: #9aa0a8; --border: #33373d;
-      --user: #1f3a57; --bot: #214a2c; --error: #5a2626; --accent: #4a9bff; --accent-text: #0b1220;
-    }
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    background: var(--bg); color: var(--text);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
-    display: flex; flex-direction: column;
-  }
-  header {
-    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
-  }
-  header h1 { font-size: 16px; margin: 0 auto 0 0; }
-  select, button, textarea {
-    font: inherit; color: var(--text); background: var(--panel);
-    border: 1px solid var(--border); border-radius: 8px;
-  }
-  select { padding: 6px 8px; max-width: 220px; }
-  button { padding: 6px 12px; cursor: pointer; }
-  button:hover:not(:disabled) { border-color: var(--accent); }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
-  #chat { flex: 1; overflow-y: auto; padding: 16px; }
-  #messages { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
-  .empty { color: var(--muted); text-align: center; margin-top: 18vh; }
-  .msg { max-width: 85%; padding: 8px 12px; border-radius: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .msg .who { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
-  .msg.user { align-self: flex-end; background: var(--user); }
-  .msg.assistant { align-self: flex-start; background: var(--bot); }
-  .msg.error { align-self: flex-start; background: var(--error); }
-  .msg.thinking .body::after { content: "thinking..."; color: var(--muted); font-style: italic; }
-  footer { background: var(--panel); border-top: 1px solid var(--border); padding: 10px 16px; }
-  #status { max-width: 820px; margin: 0 auto 6px; color: var(--muted); font-size: 13px; min-height: 18px; }
-  .composer { max-width: 820px; margin: 0 auto; display: flex; gap: 8px; align-items: flex-end; }
-  textarea { flex: 1; padding: 8px 10px; resize: none; max-height: 200px; }
-  @media (max-width: 520px) { .msg { max-width: 95%; } }
-</style>
-</head>
-<body>
-<header>
-  <h1>O.C.GUI web</h1>
-  <select id="model" title="Model"></select>
-  <button id="refresh" title="Reload the model list">&#8635;</button>
-  <button id="save">Save chat</button>
-  <button id="load">Load chat</button>
-  <button id="clear">New chat</button>
-  <input id="file" type="file" accept=".json,application/json" hidden>
-</header>
-
-<main id="chat"><div id="messages"></div></main>
-
-<footer>
-  <div id="status"></div>
-  <div class="composer">
-    <textarea id="input" rows="1" placeholder="Type a prompt (Enter to send, Shift+Enter for a new line)"></textarea>
-    <button id="send" class="primary">Send</button>
-    <button id="stop" hidden>Stop</button>
-    <button id="redo">Redo</button>
-  </div>
-</footer>
-
-<script>
 "use strict";
+// Talks to the backend through three endpoints (see ../API.md), so either side can be swapped.
 const $ = (id) => document.getElementById(id);
 const els = {
   chat: $("chat"), messages: $("messages"), model: $("model"), refresh: $("refresh"),
   save: $("save"), load: $("load"), clear: $("clear"), file: $("file"),
   input: $("input"), send: $("send"), stop: $("stop"), redo: $("redo"), status: $("status"),
+  toolbar: $("toolbar"), dock: $("dock"), glassBtn: $("glass-btn"), glassPop: $("glass-pop"), glass: $("glass"),
 };
 const CUSTOM = "__custom__";
 const STORAGE_KEY = "ollama_web_chat";
@@ -229,6 +153,7 @@ async function ask(prompt) {
 
   let reply = "";
   let failure = null;
+  let stopped = false;
   controller = new AbortController();
   setBusy(true);
   setStatus("Generating...");
@@ -267,7 +192,11 @@ async function ask(prompt) {
       }
     }
   } catch (e) {
-    if (e.name !== "AbortError") failure = e;
+    if (e.name === "AbortError") stopped = true; else failure = e;
+  }
+  if (!failure && !stopped && !reply) {
+    // Thinking models can use their whole turn thinking and send no text.
+    failure = new Error("The model sent back an empty reply. Try Redo, or pick another model.");
   }
 
   controller = null;
@@ -352,12 +281,51 @@ els.clear.addEventListener("click", () => {
   els.input.focus();
 });
 
+// ---------- glass appearance (Clear <-> Tinted, like the macOS 27 setting) ----------
+const GLASS_KEY = "ollama_web_glass";
+function applyTint(percent) {
+  document.documentElement.style.setProperty("--tint", String(percent / 100));
+}
+function initGlass() {
+  let percent = 60;
+  try {
+    const saved = parseInt(localStorage.getItem(GLASS_KEY), 10);
+    if (saved >= 0 && saved <= 100) percent = saved;
+  } catch (e) {}
+  els.glass.value = percent;
+  applyTint(percent);
+}
+els.glass.addEventListener("input", () => {
+  applyTint(+els.glass.value);
+  try { localStorage.setItem(GLASS_KEY, els.glass.value); } catch (e) {}
+});
+function setPopover(open) {
+  els.glassPop.hidden = !open;
+  els.glassBtn.setAttribute("aria-expanded", String(open));
+}
+els.glassBtn.addEventListener("click", (e) => { e.stopPropagation(); setPopover(els.glassPop.hidden); });
+document.addEventListener("click", (e) => {
+  if (!els.glassPop.hidden && !els.glassPop.contains(e.target)) setPopover(false);
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") setPopover(false); });
+
+// The chat scrolls underneath the glass, so it needs to know how tall the toolbar and composer are.
+function syncLayout() {
+  const root = document.documentElement.style;
+  root.setProperty("--toolbar-h", els.toolbar.offsetHeight + "px");
+  root.setProperty("--dock-h", els.dock.offsetHeight + "px");
+}
+if (window.ResizeObserver) {
+  const observer = new ResizeObserver(syncLayout);
+  observer.observe(els.toolbar);
+  observer.observe(els.dock);
+}
+
 // ---------- start ----------
+initGlass();
+syncLayout();
 restore();
 syncLast();
 renderAll();
 loadModels().then(() => { if (messages.length) renderAll(); });
 els.input.focus();
-</script>
-</body>
-</html>
