@@ -1,6 +1,6 @@
 import tkinter as tk
 import tkinter.font as tkFont
-from tkinter import scrolledtext, filedialog, ttk
+from tkinter import scrolledtext, filedialog, ttk, messagebox
 import threading
 import time
 import json
