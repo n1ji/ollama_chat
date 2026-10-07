@@ -42,6 +42,20 @@ Type a prompt, press **Send** (or Enter), and watch the answer stream in.
 
 On first launch no model is selected. Open **File → Choose Model**, pick one of your installed models and press OK. If the list is empty, make sure Ollama is running, or pick `custom...` and type the model name.
 
+## Web UI (experimental)
+
+The `web/` folder has a browser version of the same chat: a small Python backend (`server.py`, standard library plus the `ollama` package) and a single-page frontend (`index.html`).
+
+```bash
+python web/server.py
+```
+
+It opens http://localhost:8765 in your browser. Same features as the desktop app (model picker, streaming, Redo, save/load chat, and saved chats use the same JSON), plus a Stop button. The chat itself lives in the browser, so the server keeps nothing between requests.
+
+- `--port 9000` changes the port and `--no-browser` stops it from opening a tab
+- It only listens on your own computer. `--host 0.0.0.0` makes it reachable from other devices, but there is no login, so anyone on your network could use your Ollama
+- This is early and can be buggy
+
 ## Issues
 
 Found a bug? Open an [issue](https://github.com/n1ji/ollama_chat/issues).
