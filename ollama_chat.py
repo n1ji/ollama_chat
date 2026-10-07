@@ -7,6 +7,7 @@ from tkinter import filedialog, messagebox, ttk
 from ollama import chat, list as list_models
 
 ROLE_COLORS = {"user": "lightblue", "assistant": "lightgreen"}
+MAX_CONTEXT_MESSAGES = 40  # only the most recent messages are sent to the model; the full chat is still saved
 NO_MODEL_MESSAGE = "No model selected. Choose one from File → Choose Model."
 
 model_file = Path.home() / "Documents" / "selected_model.txt"
@@ -36,6 +37,14 @@ def post(func, *args):
         root.after(0, func, *args)
     except (RuntimeError, tk.TclError):
         pass  # window was closed while a request was running
+
+
+def recent_context(history):
+    """The last MAX_CONTEXT_MESSAGES messages, starting on a user message so no turn is cut in half."""
+    recent = history[-MAX_CONTEXT_MESSAGES:]
+    while len(recent) > 1 and recent[0]["role"] != "user":
+        recent = recent[1:]
+    return recent
 
 
 def stream_reply(model_name, messages):
@@ -82,7 +91,7 @@ def start_request(prompt):
     add_message("User", prompt, "lightblue", anchor="e")
     reply_bubble, reply_text = add_message("Ollama", "", "lightgreen", anchor="w")
     set_busy(True)
-    threading.Thread(target=stream_reply, args=(model, list(conversation_history)), daemon=True).start()
+    threading.Thread(target=stream_reply, args=(model, recent_context(conversation_history)), daemon=True).start()
 
 
 def set_busy(flag):
@@ -192,6 +201,7 @@ def apply_model(name):
     model = name
     update_title()
     try:
+        model_file.parent.mkdir(parents=True, exist_ok=True)
         model_file.write_text(name, encoding="utf-8")
     except OSError as e:
         messagebox.showerror("Error", f"Model changed, but it couldn't be remembered: {e}")

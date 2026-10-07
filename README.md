@@ -6,11 +6,13 @@ A small desktop chat window for talking to a local [Ollama](https://ollama.com) 
 
 ## Features
 
-- Chat with a local model through a simple Tkinter window
-- Conversation history is kept, so the model remembers earlier messages
+- Chat with a local model through a simple Tkinter window; replies stream in as they are generated
+- Pick any model you have pulled from **File → Choose Model** (or type a custom name). The choice applies immediately and is remembered in `Documents/selected_model.txt`
+- Conversation history is kept, so the model remembers earlier messages (the most recent 40 messages are sent to the model)
 - **Redo** button to regenerate the last answer
-- **Save Chat State** button to save the whole conversation as JSON, and **File → Load Chat** to continue it later
-- **File → Save Responses (Legacy)** to export the conversation as plain text
+- **Save Chat State** (button or File menu) saves the whole conversation as JSON, and **File → Load Chat** continues it later
+- **File → Save Responses (Legacy)** exports the conversation as plain text
+- Message text can be selected and copied, Enter sends, and the window is resizable
 
 ## Requirements
 
@@ -22,7 +24,7 @@ A small desktop chat window for talking to a local [Ollama](https://ollama.com) 
   pip install ollama
   ```
 
-- The model the app uses (`llama3.1` by default):
+- At least one model pulled, for example:
 
   ```bash
   ollama pull llama3.1
@@ -34,11 +36,11 @@ A small desktop chat window for talking to a local [Ollama](https://ollama.com) 
 python ollama_chat.py
 ```
 
-Type a prompt, press **Send**, and wait for the answer.
+Type a prompt, press **Send** (or Enter), and watch the answer stream in.
 
-## Using a different model
+## Choosing a model
 
-The model name is set in `run_ollama_chat` in `ollama_chat.py` (`model='llama3.1'`). Change it to any model you have pulled with Ollama.
+On first launch no model is selected. Open **File → Choose Model**, pick one of your installed models and press OK. If the list is empty, make sure Ollama is running, or pick `custom...` and type the model name.
 
 ## Issues
 
