@@ -103,9 +103,9 @@ def load_chat():
             else:
                 last_prompt = None
         except FileNotFoundError:
-            tk.messagebox.showerror("Error", "Chat file not found.")
+            messagebox.showerror("Error", "Chat file not found.")
         except json.JSONDecodeError:
-            tk.messagebox.showerror("Error", "Invalid JSON file.")
+            messagebox.showerror("Error", "Invalid JSON file.")
 
 def save_responses():
     filepath = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
