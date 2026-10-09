@@ -1,5 +1,9 @@
 # Ollama Chat
 
+> **Branch: `experimental`** (can be buggy). It is the v1.3.0 desktop app from [`main`](https://github.com/n1ji/ollama_chat/tree/main) plus a browser version of
+> the chat in the `web/` folder (see "Web UI" below). It was branched off before `main` got the automatic release builds, so those are not part of it.
+> Use `main` if you just want the stable desktop app.
+
 A small desktop chat window for talking to a local [Ollama](https://ollama.com) model. It runs fully offline and needs no Docker, no Open WebUI and no installation, just Python and Ollama.
 
 > **Work in progress.** Expect bugs.
