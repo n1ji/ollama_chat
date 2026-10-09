@@ -1,5 +1,8 @@
 # Ollama Chat
 
+> **Branch: `backup`** (old, not maintained). A snapshot of the app from before v1.3.0: no model chooser, no streaming,
+> and the model is fixed in the code. Kept only for reference. Use [`main`](https://github.com/n1ji/ollama_chat/tree/main) for the current app.
+
 A small desktop chat window for talking to a local [Ollama](https://ollama.com) model. It runs fully offline and needs no Docker, no Open WebUI and no installation, just Python and Ollama.
 
 > **Work in progress.** Expect bugs.
