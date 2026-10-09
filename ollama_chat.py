@@ -1,3 +1,4 @@
+import math
 import sys
 import json
 import threading
@@ -353,20 +354,26 @@ def on_mousewheel(event):
 
 
 def create_round_rectangle(canvas, x1, y1, x2, y2, radius, **kwargs):
-    """Create a rounded rectangle on a Tkinter canvas."""
-    points = [
-        (x1 + radius, y1), (x2 - radius, y1),
-        (x2, y1), (x2, y1 + radius),
-        (x2, y2 - radius), (x2, y2),
-        (x2 - radius, y2), (x1 + radius, y2),
-        (x1, y2), (x1, y2 - radius),
-        (x1, y1 + radius), (x1, y1),
-    ]
-    return canvas.create_polygon(points, smooth=True, **kwargs)
+    """Create a rounded rectangle on a Tkinter canvas.
+
+    The corners are real quarter circles drawn as plain polygon points. (Using smooth=True on a
+    few corner points makes Tk fit a spline through them, which overshoots and folds the corners.)
+    """
+    radius = max(0, min(radius, (x2 - x1) / 2, (y2 - y1) / 2))
+    steps = 12
+    points = []
+    # (corner centre x, corner centre y, start angle) going clockwise from the top-left corner
+    corners = ((x1 + radius, y1 + radius, 180), (x2 - radius, y1 + radius, 270),
+               (x2 - radius, y2 - radius, 0), (x1 + radius, y2 - radius, 90))
+    for cx, cy, start in corners:
+        for i in range(steps + 1):
+            angle = math.radians(start + 90 * i / steps)
+            points.append((cx + radius * math.cos(angle), cy + radius * math.sin(angle)))
+    return canvas.create_polygon(points, **kwargs)
 
 
 class RoundButton(tk.Frame):
-    def __init__(self, parent, text, command, radius=15, width=80, height=30, bg="lightblue", fg="black",
+    def __init__(self, parent, text, command, radius=8, width=80, height=30, bg="lightblue", fg="black",
                  font=("TkDefaultFont", 10)):
         super().__init__(parent, width=width, height=height)
         self.pack_propagate(False)
@@ -376,7 +383,8 @@ class RoundButton(tk.Frame):
         self._enabled = True
 
         self._canvas = tk.Canvas(self, width=width, height=height, bg=parent.cget("bg"), highlightthickness=0)
-        self._shape = create_round_rectangle(self._canvas, 0, 0, width, height, radius, fill=bg)
+        self._shape = create_round_rectangle(self._canvas, 1, 1, width - 1, height - 1, radius, fill=bg,
+                                           outline=self._edge_colour(bg))
         self._canvas.pack(fill="both", expand=True)
 
         self._label = tk.Label(self._canvas, text=text, font=font, bg=bg, fg=fg)
@@ -385,6 +393,12 @@ class RoundButton(tk.Frame):
         self._canvas.bind("<Button-1>", self._click)
         self._label.bind("<Button-1>", self._click)
 
+    def _edge_colour(self, colour):
+        """Halfway between the button and its background: a cheap antialias for the 1px edge."""
+        r1, g1, b1 = self.winfo_rgb(colour)
+        r2, g2, b2 = self.winfo_rgb(self._canvas.cget("bg"))
+        return "#%02x%02x%02x" % ((r1 + r2) // 512, (g1 + g2) // 512, (b1 + b2) // 512)
+
     def _click(self, event):
         if self._enabled:
             self._command()
@@ -392,7 +406,7 @@ class RoundButton(tk.Frame):
     def set_enabled(self, enabled):
         self._enabled = enabled
         bg = self._bg if enabled else "lightgray"
-        self._canvas.itemconfigure(self._shape, fill=bg)
+        self._canvas.itemconfigure(self._shape, fill=bg, outline=self._edge_colour(bg))
         self._label.config(bg=bg, fg=self._fg if enabled else "gray")
 
 
