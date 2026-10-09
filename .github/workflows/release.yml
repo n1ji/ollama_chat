@@ -1,0 +1,94 @@
+name: release
+
+# Publish a release on GitHub (or push a tag like v1.4.0-ollamachat) and this builds the app for
+# Windows, Mac and Linux and attaches the files to that release. Your release notes stay as written.
+# "Run workflow" builds everything without releasing (download the files from the run page).
+on:
+  push:
+    tags: ["v*"]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Publishing on GitHub fires both the tag push and the release event: keep only one run per tag.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install ollama pyinstaller
+      - name: Build
+        run: pyinstaller --onefile --windowed --name ollama_chat ollama_chat.py
+      - name: Self-test the build
+        run: dist/ollama_chat.exe --selftest
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ollama_chat-windows
+          path: dist/ollama_chat.exe
+
+  mac:
+    runs-on: macos-14   # Apple Silicon
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install ollama pyinstaller
+      - name: Build
+        run: pyinstaller --windowed --name "Ollama Chat" --osx-bundle-identifier com.n1ji.ollama-chat ollama_chat.py
+      - name: Self-test the build
+        run: '"dist/Ollama Chat.app/Contents/MacOS/Ollama Chat" --selftest'
+      - name: Zip
+        run: ditto -c -k --sequesterRsrc --keepParent "dist/Ollama Chat.app" ollama_chat_mac.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ollama_chat-mac
+          path: ollama_chat_mac.zip
+
+  linux:
+    runs-on: ubuntu-22.04   # older glibc, so the binary runs on more distros
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install ollama pyinstaller
+      - name: Build
+        run: pyinstaller --onefile --name ollama_chat ollama_chat.py
+      - name: Self-test the build
+        run: dist/ollama_chat --selftest
+      - name: Pack
+        run: tar -C dist -czf ollama_chat_linux.tar.gz ollama_chat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ollama_chat-linux
+          path: ollama_chat_linux.tar.gz
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [windows, mac, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Add the plain script too
+        run: cp ollama_chat.py out/
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/*

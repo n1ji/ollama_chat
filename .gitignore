@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+
+# build output
+build/
+dist/
+*.spec

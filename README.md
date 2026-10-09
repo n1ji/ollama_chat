@@ -14,7 +14,19 @@ A small desktop chat window for talking to a local [Ollama](https://ollama.com) 
 - **File → Save Responses (Legacy)** exports the conversation as plain text
 - Message text can be selected and copied, Enter sends, and the window is resizable
 
-## Requirements
+## Download
+
+Grab the file for your system from the [latest release](https://github.com/n1ji/ollama_chat/releases/latest), no Python needed. You still need [Ollama](https://ollama.com/download) running with at least one model pulled.
+
+- **Windows:** `ollama_chat.exe`, just run it. SmartScreen or Defender may warn because it isn't signed (More info > Run anyway).
+- **Mac (Apple Silicon):** unzip `ollama_chat_mac.zip` and move **Ollama Chat.app** to Applications. It isn't signed, so the first time right-click it > **Open**.
+- **Linux:** `tar xzf ollama_chat_linux.tar.gz && ./ollama_chat` (needs a desktop session).
+
+The builds are made automatically by GitHub Actions every time a release is published.
+
+## Running from source
+
+### Requirements
 
 - Python 3 with Tkinter (included with the standard Python installers; on some Linux distributions install `python3-tk`)
 - [Ollama](https://ollama.com/download) installed and running

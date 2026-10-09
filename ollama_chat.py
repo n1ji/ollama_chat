@@ -6,6 +6,11 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 from ollama import chat, list as list_models
 
+# Used by the release workflow to check that a built app starts and has everything it needs.
+if "--selftest" in sys.argv:
+    import _tkinter  # noqa: F401  (the Tk libraries made it into the build)
+    raise SystemExit(0)
+
 ROLE_COLORS = {"user": "lightblue", "assistant": "lightgreen"}
 MAX_CONTEXT_MESSAGES = 40  # only the most recent messages are sent to the model; the full chat is still saved
 NO_MODEL_MESSAGE = "No model selected. Choose one from File → Choose Model."
